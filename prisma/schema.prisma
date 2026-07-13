@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Poets ───────────────────────────────────────────────
+
+model Poet {
+  id        String   @id @default(cuid())
+  name      String
+  bio       String?
+  imageUrl  String?
+  slug      String   @unique
+  poems     Poem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("poets")
+}
+
+// ─── Categories ──────────────────────────────────────────
+
+model Category {
+  id    String @id @default(cuid())
+  name  String @unique
+  slug  String @unique
+  poems Poem[]
+
+  @@map("categories")
+}
+
+// ─── Poems ───────────────────────────────────────────────
+
+model Poem {
+  id         String    @id @default(cuid())
+  title      String
+  slug       String    @unique
+  content    String
+  coverUrl   String?
+  published  Boolean   @default(false)
+  poetId     String
+  poet       Poet      @relation(fields: [poetId], references: [id])
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  videos     Video[]
+  likes      Like[]
+  saves      Save[]
+  comments   Comment[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([poetId])
+  @@index([categoryId])
+  @@index([published, createdAt])
+  @@map("poems")
+}
+
+// ─── Videos ──────────────────────────────────────────────
+
+model Video {
+  id        String   @id @default(cuid())
+  title     String?
+  videoUrl  String
+  poemId    String
+  poem      Poem     @relation(fields: [poemId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([poemId])
+  @@map("videos")
+}
+
+// ─── Likes ───────────────────────────────────────────────
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  poemId    String
+  poem      Poem     @relation(fields: [poemId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, poemId])
+  @@index([poemId])
+  @@map("likes")
+}
+
+// ─── Saves ───────────────────────────────────────────────
+
+model Save {
+  id        String   @id @default(cuid())
+  userId    String
+  poemId    String
+  poem      Poem     @relation(fields: [poemId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, poemId])
+  @@index([userId])
+  @@index([poemId])
+  @@map("saves")
+}
+
+// ─── Comments ────────────────────────────────────────────
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String
+  userId    String
+  poemId    String
+  poem      Poem     @relation(fields: [poemId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([poemId, createdAt])
+  @@map("comments")
+}
