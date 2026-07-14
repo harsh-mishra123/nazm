@@ -1,0 +1,43 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-and-test:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Type Check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      # Uncomment below if you want to test Next.js build as well.
+      # Note: Vercel handles deployments automatically, and Next.js builds may require valid ENV variables.
+      # - name: Build
+      #   run: npm run build
+      #   env:
+      #     DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgres"
+      #     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "dummy"
+      #     CLERK_SECRET_KEY: "dummy"

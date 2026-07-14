@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Search, Loader2, User } from "lucide-react";
 
 interface UserResult {
@@ -21,34 +21,32 @@ export function UserSearch({ onSelect, placeholder = "Search by username..." }: 
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
-  const search = useCallback(
-    (() => {
-      let timer: ReturnType<typeof setTimeout>;
-      return (value: string) => {
-        clearTimeout(timer);
-        if (!value.trim()) {
-          setResults([]);
-          setIsSearching(false);
-          return;
-        }
-        setIsSearching(true);
-        timer = setTimeout(async () => {
-          try {
-            const res = await fetch(
-              `/api/users/search?q=${encodeURIComponent(value)}`
-            );
-            const data = await res.json();
-            setResults(data.users ?? []);
-          } catch {
-            setResults([]);
-          } finally {
-            setIsSearching(false);
-          }
-        }, 300);
-      };
-    })(),
-    []
-  );
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const search = useCallback((value: string) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    if (!value.trim()) {
+      setResults([]);
+      setIsSearching(false);
+      return;
+    }
+    setIsSearching(true);
+    timerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/users/search?q=${encodeURIComponent(value)}`
+        );
+        const data = await res.json();
+        setResults(data.users ?? []);
+      } catch {
+        setResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

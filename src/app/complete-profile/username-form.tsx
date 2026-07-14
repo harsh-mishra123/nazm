@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { claimUsername } from "@/lib/users/actions";
 import { usernameSchema } from "@/lib/users/validations";
@@ -16,33 +16,31 @@ export function UsernameForm() {
     "idle" | "checking" | "available" | "taken"
   >("idle");
 
-  // Debounced availability check
-  const checkAvailability = useCallback(
-    (() => {
-      let timer: ReturnType<typeof setTimeout>;
-      return (value: string) => {
-        clearTimeout(timer);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const checkAvailability = useCallback((value: string) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    
+    if (value.length < 3) {
+      setAvailability("idle");
+      return;
+    }
+
+    setAvailability("checking");
+    timerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/users/check-username?username=${encodeURIComponent(value)}`
+        );
+        const data = await res.json();
+        setAvailability(data.available ? "available" : "taken");
+      } catch {
         setAvailability("idle");
-
-        const parsed = usernameSchema.safeParse(value);
-        if (!parsed.success) return;
-
-        setAvailability("checking");
-        timer = setTimeout(async () => {
-          try {
-            const res = await fetch(
-              `/api/users/check-username?username=${encodeURIComponent(value)}`
-            );
-            const data = await res.json();
-            setAvailability(data.available ? "available" : "taken");
-          } catch {
-            setAvailability("idle");
-          }
-        }, 400);
-      };
-    })(),
-    []
-  );
+      }
+    }, 500);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
