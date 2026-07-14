@@ -69,6 +69,7 @@ export function ConversationView({
   useEffect(() => {
     if (streamMessages.length === 0) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAllMessages((prev) => {
       const ids = new Set(prev.map((m) => m.id));
       const newMessages = streamMessages.filter((m) => !ids.has(m.id));
