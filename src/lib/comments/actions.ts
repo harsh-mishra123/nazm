@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { checkIsAdmin } from "@/lib/auth";
 import { createCommentSchema } from "./validations";
+import { ensureUserExists } from "@/lib/users/queries";
 
 export async function addComment(formData: FormData) {
   const { userId } = await auth();
@@ -23,6 +24,8 @@ export async function addComment(formData: FormData) {
     select: { slug: true },
   });
   if (!poem) throw new Error("Poem not found");
+
+  await ensureUserExists(userId);
 
   await db.comment.create({
     data: {

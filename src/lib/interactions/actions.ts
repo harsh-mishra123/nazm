@@ -3,10 +3,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { ensureUserExists } from "@/lib/users/queries";
 
 export async function toggleLike(poemId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Sign in to like poems");
+
+  await ensureUserExists(userId);
 
   const existing = await db.like.findUnique({
     where: { userId_poemId: { userId, poemId } },
@@ -31,6 +34,8 @@ export async function toggleLike(poemId: string) {
 export async function toggleSave(poemId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Sign in to save poems");
+
+  await ensureUserExists(userId);
 
   const existing = await db.save.findUnique({
     where: { userId_poemId: { userId, poemId } },
