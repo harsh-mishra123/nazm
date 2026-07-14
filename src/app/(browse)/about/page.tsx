@@ -55,7 +55,16 @@ export default function AboutPage() {
             Studio & Reach Us
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Whether you are a fellow creator, reader, or rebel, we welcome your presence. nazm is actively maintained as a solo labor of love. If you want to contribute recitations or reach out for collaboration, contact details will be featured here in subsequent updates.
+            Whether you are a fellow creator, reader, or rebel, we welcome your presence. nazm is actively maintained as a solo labor of love. If you want to contribute recitations or reach out for collaboration, you can{" "}
+            <a
+              href="https://www.instagram.com/harrrssshhhhh_/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground hover:underline"
+            >
+              know me
+            </a>{" "}
+            here.
           </p>
         </section>
       </div>
