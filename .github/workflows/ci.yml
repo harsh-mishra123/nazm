@@ -26,6 +26,8 @@ jobs:
 
       - name: Generate Prisma Client
         run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Type Check
         run: npx tsc --noEmit
@@ -33,11 +35,4 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # Uncomment below if you want to test Next.js build as well.
-      # Note: Vercel handles deployments automatically, and Next.js builds may require valid ENV variables.
-      # - name: Build
-      #   run: npm run build
-      #   env:
-      #     DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgres"
-      #     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "dummy"
-      #     CLERK_SECRET_KEY: "dummy"
+    
