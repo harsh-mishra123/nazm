@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { label: "Poems", href: "/poems" },
   { label: "Poets", href: "/poets" },
   { label: "Saved", href: "/saved" },
+  { label: "Chat", href: "/chat" },
 ] as const;
 
 export function Navbar() {
@@ -26,7 +27,7 @@ export function Navbar() {
           className="text-2xl tracking-tight text-foreground"
           style={{ fontFamily: "'Instrument Serif', serif" }}
         >
-          nazm<sup className="text-[10px]">®</sup>
+          nazm<sup className="text-[10px]">&reg;</sup>
         </Link>
 
         {/* Desktop Nav */}
@@ -36,7 +37,7 @@ export function Navbar() {
               key={link.label}
               href={link.href}
               className={`text-sm transition-colors ${
-                pathname === link.href
+                pathname === link.href || pathname.startsWith(link.href + "/")
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}
@@ -86,7 +87,7 @@ export function Navbar() {
               href={link.href}
               onClick={() => setMobileOpen(false)}
               className={`block py-3 text-sm transition-colors ${
-                pathname === link.href
+                pathname === link.href || pathname.startsWith(link.href + "/")
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}

@@ -85,6 +85,7 @@ export default async function PoemPage({ params }: PoemPageProps) {
         {/* Interaction buttons */}
         <InteractionButtons
           poemId={poem.id}
+          poemTitle={poem.title}
           likeCount={poem._count.likes}
           isLiked={isLiked}
           isSaved={isSaved}
