@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import Link from "next/link";
-import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { X, Loader2 } from "lucide-react";
+import { getPoemDetailsForModal } from "@/lib/interactions/actions";
+import { InteractionButtons } from "@/components/interaction-buttons";
+import { CommentSection } from "@/components/comment-section";
 
 interface PoemModalProps {
   poem: {
+    id: string;
     title: string;
     slug: string;
     content: string;
@@ -19,6 +22,15 @@ interface PoemModalProps {
 
 export function PoemModal({ poem, onClose }: PoemModalProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<{
+    likeCount: number;
+    isLiked: boolean;
+    isSaved: boolean;
+    comments: any[];
+    userId: string | null;
+    isAdmin: boolean;
+  } | null>(null);
 
   // Close on Escape key
   useEffect(() => {
@@ -36,6 +48,36 @@ export function PoemModal({ poem, onClose }: PoemModalProps) {
       document.body.style.overflow = "";
     };
   }, []);
+
+  // Fetch comments and interaction status
+  useEffect(() => {
+    let isMounted = true;
+    getPoemDetailsForModal(poem.id)
+      .then((res) => {
+        if (isMounted) {
+          setData(res);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Error loading poem interactive details:", err);
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [poem.id]);
+
+  const goToFullPage = () => {
+    document.body.style.overflow = "";
+    window.location.href = `/poems/${poem.slug}`;
+  };
+
+  const goToPoet = () => {
+    document.body.style.overflow = "";
+    window.location.href = `/poets/${poem.poet.slug}`;
+  };
 
   return (
     // Backdrop
@@ -75,13 +117,12 @@ export function PoemModal({ poem, onClose }: PoemModalProps) {
             </h2>
             <p className="text-sm text-muted-foreground">
               by{" "}
-              <Link
-                href={`/poets/${poem.poet.slug}`}
-                className="hover:text-foreground transition-colors"
-                onClick={onClose}
+              <button
+                onClick={goToPoet}
+                className="hover:text-foreground transition-colors underline-offset-2 hover:underline"
               >
                 {poem.poet.name}
-              </Link>
+              </button>
             </p>
           </div>
 
@@ -100,30 +141,96 @@ export function PoemModal({ poem, onClose }: PoemModalProps) {
         {/* Scrollable content */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto px-8 py-6"
+          className="flex-1 overflow-y-auto px-8 py-6 space-y-6"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
+          {/* Poem body */}
           <div
             className="text-foreground/90 text-lg leading-[1.9] whitespace-pre-line"
             style={{ fontFamily: "'Instrument Serif', serif" }}
           >
             {poem.content}
           </div>
+
+          {/* Social Interactions Divider */}
+          <div className="border-t border-border/30 pt-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-6 gap-2 text-sm text-muted-foreground">
+                <Loader2 className="animate-spin" size={16} />
+                <span>Loading interactions...</span>
+              </div>
+            ) : data ? (
+              <div className="space-y-6">
+                {/* Interaction Buttons (Like, Comment, Save, Share) */}
+                <div className="py-2.5 border-y border-border/30 flex items-center justify-between">
+                  <InteractionButtons
+                    poemId={poem.id}
+                    poemTitle={poem.title}
+                    likeCount={data.likeCount}
+                    isLiked={data.isLiked}
+                    isSaved={data.isSaved}
+                    isSignedIn={!!data.userId}
+                    onLikeToggle={(newLiked, newCount) => {
+                      setData((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              isLiked: newLiked,
+                              likeCount: newCount,
+                            }
+                          : null
+                      );
+                    }}
+                    onSaveToggle={(newSaved) => {
+                      setData((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              isSaved: newSaved,
+                            }
+                          : null
+                      );
+                    }}
+                  />
+                </div>
+
+                {/* Comment Section (Add Comment, Comments List) */}
+                <CommentSection
+                  poemId={poem.id}
+                  comments={data.comments}
+                  currentUserId={data.userId}
+                  isAdmin={data.isAdmin}
+                />
+              </div>
+            ) : (
+              <div className="text-center py-4 text-sm text-muted-foreground">
+                Could not load social features. Please try again.
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Footer */}
         <div className="shrink-0 px-8 py-5 border-t border-border/30 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>{poem.likeCount} ♥</span>
-            <span>{poem.commentCount} 💬</span>
+            {!loading && data ? (
+              <>
+                <span>{data.likeCount} ♥</span>
+                <span>{data.comments.length} 💬</span>
+              </>
+            ) : (
+              <>
+                <span>{poem.likeCount} ♥</span>
+                <span>{poem.commentCount} 💬</span>
+              </>
+            )}
           </div>
-          <Link
-            href={`/poems/${poem.slug}`}
+          <button
+            onClick={goToFullPage}
             className="liquid-glass rounded-full px-5 py-2 text-sm text-foreground transition-transform hover:scale-[1.03]"
-            onClick={onClose}
           >
             Open full page →
-          </Link>
+          </button>
         </div>
       </div>
     </div>
