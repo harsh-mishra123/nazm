@@ -5,6 +5,7 @@ const isProtectedRoute = createRouteMatcher([
   "/saved(.*)",
   "/chat(.*)",
   "/complete-profile",
+  "/profile(.*)",
 ]);
 
 export const proxy = clerkMiddleware(async (auth, req) => {
