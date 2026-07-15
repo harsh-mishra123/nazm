@@ -82,15 +82,7 @@ export default async function PoemPage({ params }: PoemPageProps) {
           <time>{formatDate(poem.createdAt)}</time>
         </div>
 
-        {/* Interaction buttons */}
-        <InteractionButtons
-          poemId={poem.id}
-          poemTitle={poem.title}
-          likeCount={poem._count.likes}
-          isLiked={isLiked}
-          isSaved={isSaved}
-          isSignedIn={!!userId}
-        />
+
       </header>
 
       {/* Poem content */}
@@ -134,8 +126,17 @@ export default async function PoemPage({ params }: PoemPageProps) {
         </section>
       )}
 
-      {/* Divider */}
-      <hr className="border-border/30" />
+      {/* Interaction buttons */}
+      <div className="py-2 border-y border-border/30 flex items-center justify-between">
+        <InteractionButtons
+          poemId={poem.id}
+          poemTitle={poem.title}
+          likeCount={poem._count.likes}
+          isLiked={isLiked}
+          isSaved={isSaved}
+          isSignedIn={!!userId}
+        />
+      </div>
 
       {/* Comments */}
       <CommentSection

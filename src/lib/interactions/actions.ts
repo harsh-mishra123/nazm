@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { ensureUserExists } from "@/lib/users/queries";
 
+import { checkIsAdmin } from "@/lib/auth";
+
 export async function toggleLike(poemId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Sign in to like poems");
@@ -55,4 +57,49 @@ export async function toggleSave(poemId: string) {
   revalidatePath("/saved");
 
   return { success: true, saved: !existing };
+}
+
+export async function getPoemDetailsForModal(poemId: string) {
+  const { userId } = await auth();
+  
+  const poem = await db.poem.findUnique({
+    where: { id: poemId },
+    select: {
+      _count: { select: { likes: true } }
+    }
+  });
+
+  const comments = await db.comment.findMany({
+    where: { poemId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      text: true,
+      userId: true,
+      createdAt: true,
+    }
+  });
+
+  let isLiked = false;
+  let isSaved = false;
+
+  if (userId) {
+    const [like, save] = await Promise.all([
+      db.like.findUnique({ where: { userId_poemId: { userId, poemId } } }),
+      db.save.findUnique({ where: { userId_poemId: { userId, poemId } } }),
+    ]);
+    isLiked = !!like;
+    isSaved = !!save;
+  }
+
+  const isAdmin = await checkIsAdmin();
+
+  return {
+    likeCount: poem?._count.likes ?? 0,
+    isLiked,
+    isSaved,
+    comments,
+    userId,
+    isAdmin,
+  };
 }

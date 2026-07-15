@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useOptimistic, useTransition } from "react";
-import { Heart, Bookmark, Loader2, Share2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Heart, Bookmark, Share2 } from "lucide-react";
 import { toggleLike, toggleSave } from "@/lib/interactions/actions";
 import { SharePoemDialog } from "@/components/share-poem-dialog";
 
@@ -12,6 +12,8 @@ interface InteractionButtonsProps {
   isLiked: boolean;
   isSaved: boolean;
   isSignedIn: boolean;
+  onLikeToggle?: (newLiked: boolean, newCount: number) => void;
+  onSaveToggle?: (newSaved: boolean) => void;
 }
 
 export function InteractionButtons({
@@ -21,44 +23,82 @@ export function InteractionButtons({
   isLiked,
   isSaved,
   isSignedIn,
+  onLikeToggle,
+  onSaveToggle,
 }: InteractionButtonsProps) {
-  const [likePending, startLikeTransition] = useTransition();
-  const [savePending, startSaveTransition] = useTransition();
   const [shareOpen, setShareOpen] = useState(false);
+  const [likeState, setLikeState] = useState({ count: likeCount, liked: isLiked });
+  const [saved, setSaved] = useState(isSaved);
+  const [isLiking, setIsLiking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Optimistic like state: instantly reflect toggle before server responds
-  const [optimisticLike, setOptimisticLike] = useOptimistic<{
-    count: number;
-    liked: boolean;
-  }>({ count: likeCount, liked: isLiked });
+  // Sync state if props change
+  useEffect(() => {
+    setLikeState({ count: likeCount, liked: isLiked });
+  }, [likeCount, isLiked]);
 
-  // Optimistic save state
-  const [optimisticSaved, setOptimisticSaved] = useOptimistic<boolean>(isSaved);
+  useEffect(() => {
+    setSaved(isSaved);
+  }, [isSaved]);
 
-  const handleLike = () => {
+  const handleLike = async () => {
     if (!isSignedIn) {
       window.location.href = "/sign-in";
       return;
     }
-    startLikeTransition(async () => {
-      // Optimistic update — flip instantly
-      setOptimisticLike((prev) => ({
-        count: prev.liked ? prev.count - 1 : prev.count + 1,
-        liked: !prev.liked,
-      }));
+    if (isLiking) return;
+
+    const newLiked = !likeState.liked;
+    const newCount = newLiked ? likeState.count + 1 : likeState.count - 1;
+
+    // Instant local update
+    setLikeState({ count: newCount, liked: newLiked });
+    if (onLikeToggle) {
+      onLikeToggle(newLiked, newCount);
+    }
+
+    setIsLiking(true);
+    try {
       await toggleLike(poemId);
-    });
+    } catch (err) {
+      console.error("Failed to like:", err);
+      // Rollback on failure
+      const rollbackLiked = !newLiked;
+      const rollbackCount = rollbackLiked ? newCount + 1 : newCount - 1;
+      setLikeState({ count: rollbackCount, liked: rollbackLiked });
+      if (onLikeToggle) {
+        onLikeToggle(rollbackLiked, rollbackCount);
+      }
+    } finally {
+      setIsLiking(false);
+    }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!isSignedIn) {
       window.location.href = "/sign-in";
       return;
     }
-    startSaveTransition(async () => {
-      setOptimisticSaved((prev) => !prev);
+    if (isSaving) return;
+
+    const newSaved = !saved;
+    setSaved(newSaved);
+    if (onSaveToggle) {
+      onSaveToggle(newSaved);
+    }
+
+    setIsSaving(true);
+    try {
       await toggleSave(poemId);
-    });
+    } catch (err) {
+      console.error("Failed to save:", err);
+      setSaved(!newSaved);
+      if (onSaveToggle) {
+        onSaveToggle(!newSaved);
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleShare = () => {
@@ -75,43 +115,74 @@ export function InteractionButtons({
         {/* Like */}
         <button
           onClick={handleLike}
-          disabled={likePending}
+          disabled={isLiking}
           className="group flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
-          aria-label={optimisticLike.liked ? "Unlike poem" : "Like poem"}
+          aria-label={likeState.liked ? "Unlike poem" : "Like poem"}
         >
           <Heart
             size={18}
             className={`transition-all duration-200 ${
-              optimisticLike.liked
+              likeState.liked
                 ? "fill-red-500 text-red-500 scale-110"
                 : "group-hover:scale-110"
             }`}
           />
           <span
             className={`tabular-nums transition-colors ${
-              optimisticLike.liked ? "text-red-400" : ""
+              likeState.liked ? "text-red-400" : ""
             }`}
           >
-            {optimisticLike.count}
+            {likeState.count}
           </span>
+        </button>
+
+        {/* Comment (scrolls to comment section) */}
+        <button
+          onClick={() => {
+            const commentInput = document.querySelector('textarea[name="text"]') as HTMLTextAreaElement;
+            if (commentInput) {
+              commentInput.focus();
+              commentInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else if (!isSignedIn) {
+              window.location.href = "/sign-in";
+            }
+          }}
+          className="group flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Comment"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="transition-all duration-200 group-hover:scale-110"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <span>Comment</span>
         </button>
 
         {/* Save */}
         <button
           onClick={handleSave}
-          disabled={savePending}
+          disabled={isSaving}
           className="group flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
-          aria-label={optimisticSaved ? "Unsave poem" : "Save poem"}
+          aria-label={saved ? "Unsave poem" : "Save poem"}
         >
           <Bookmark
             size={18}
             className={`transition-all duration-200 ${
-              optimisticSaved
+              saved
                 ? "fill-foreground text-foreground scale-110"
                 : "group-hover:scale-110"
             }`}
           />
-          <span>{optimisticSaved ? "Saved" : "Save"}</span>
+          <span>{saved ? "Saved" : "Save"}</span>
         </button>
 
         {/* Share */}
