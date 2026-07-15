@@ -1,0 +1,39 @@
+# Project name pins resource names under this repo (avoids clashing with other folders)
+name: nazm
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: nazm
+    ports:
+      - "5432:5432"
+    volumes:
+      - nazm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d nazm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional: full app in Docker (slow first build). Prefer: npm run docker:up && npm run dev
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://admin:password123@db:5432/nazm
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  nazm_pgdata:
