@@ -76,6 +76,7 @@ export default async function PoemsPage({
           {poems.map((poem) => (
             <PoemCard
               key={poem.id}
+              id={poem.id}
               title={poem.title}
               slug={poem.slug}
               content={poem.content}

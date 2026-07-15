@@ -49,6 +49,7 @@ export default async function SavedPage() {
           {saves.map((save) => (
             <PoemCard
               key={save.id}
+              id={save.poem.id}
               title={save.poem.title}
               slug={save.poem.slug}
               content={save.poem.content}
