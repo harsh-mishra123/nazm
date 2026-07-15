@@ -71,13 +71,17 @@ export async function getPoemDetailsForModal(poemId: string) {
 
   const comments = await db.comment.findMany({
     where: { poemId },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      text: true,
-      userId: true,
-      createdAt: true,
-    }
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "asc" },
   });
 
   let isLiked = false;
