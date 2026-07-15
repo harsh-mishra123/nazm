@@ -3,7 +3,17 @@ import { db } from "@/lib/db";
 export async function getCommentsByPoemId(poemId: string) {
   return db.comment.findMany({
     where: { poemId },
-    orderBy: { createdAt: "desc" },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "asc" },
   });
 }
 

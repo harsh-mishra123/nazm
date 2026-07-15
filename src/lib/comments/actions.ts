@@ -14,6 +14,7 @@ export async function addComment(formData: FormData) {
   const raw = {
     text: formData.get("text") as string,
     poemId: formData.get("poemId") as string,
+    parentId: formData.get("parentId") as string | null,
   };
 
   const data = createCommentSchema.parse(raw);
@@ -27,16 +28,27 @@ export async function addComment(formData: FormData) {
 
   await ensureUserExists(userId);
 
-  await db.comment.create({
+  const comment = await db.comment.create({
     data: {
       text: data.text,
       userId,
       poemId: data.poemId,
+      parentId: data.parentId || null,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
     },
   });
 
   revalidatePath(`/poems/${poem.slug}`);
-  return { success: true };
+  return { success: true, comment };
 }
 
 export async function deleteComment(commentId: string) {
