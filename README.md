@@ -8,11 +8,13 @@
 - **Rich Poetry Reading**: Immersive poem pages with beautiful typography (Instrument Serif).
 - **Recitation Videos**: Support for uploading and attaching video/audio recitations directly to poems.
 - **Categorization**: Browse poems by curated categories and individual poets.
-- **Interactions**: Users can like, save, and comment on poems.
+- **Social Interaction Overlay**: Like, Save, Share, and Comment on poems directly inside card overlays without leaving the page.
 
 ### Social & Real-Time Chat
 - **User Profiles**: Custom profiles with unique claimed usernames and avatars.
+- **Automatic Profile Guard**: New users are automatically redirected to pick a username immediately after registration, ensuring every reader is identifiable in chat.
 - **Real-Time 1:1 Chat**: Live messaging system built on SSE and RabbitMQ.
+- **Direct Reader Messaging**: Click the "Chat" button next to any reader's comment to instantly start a direct real-time chat with them.
 - **Poem Sharing**: Share specific poems directly into chat conversations with attached notes.
 - **Global Search**: Debounced prefix-matching search to find other users on the platform.
 
@@ -38,10 +40,11 @@
 ## 🏗 Architecture & Engineering
 
 ### 1. Database Schema
-The Postgres database is the absolute source of truth, heavily utilizing relational integrity:
+The Postgres database is the source of truth, utilizing relational integrity:
 - **`User`**: Synced securely from Clerk.
 - **`Poem` & `Poet` & `Category`**: Core content models.
 - **`Like` & `Save` & `Comment`**: User interaction models linked via Foreign Keys to `User` and `Poem`.
+- **`Comment self-relation`**: Self-referencing relationship fields (`parentId` and `replies`) inside the `Comment` model to support threaded replies.
 - **`Conversation` & `Message`**: Chat models. Messages use an enum `type` (`TEXT` or `POEM_SHARE`) to handle rich embeds.
 
 ### 2. Real-Time Chat Infrastructure
@@ -53,13 +56,14 @@ The chat system is built for resilience and scalability, decoupling persistence 
 
 ### 3. Authentication & Data Sync
 - **Clerk Middleware**: Edge-compatible routing protection (`proxy.ts`) to secure `/chat`, `/admin`, and `/saved` routes.
-- **Webhook Syncing**: Uses Clerk webhooks (verified via `svix`) to sync `user.created`, `user.updated`, and `user.deleted` events to the local Postgres database. This allows strictly typed Foreign Key constraints between application data (likes, messages) and users.
-- **Concurrency Control**: Username claiming relies on database-level unique constraints (catching Prisma `P2002` errors) rather than check-then-insert application logic to prevent race conditions.
+- **Username Guard**: The main `(browse)` layout runs a server-side authentication check. If a logged-in user does not have a claimed username in the database, they are blocked and redirected to `/complete-profile` before accessing the feed.
+- **Webhook Syncing**: Uses Clerk webhooks (verified via `svix`) to sync `user.created`, `user.updated`, and `user.deleted` events.
 
-### 4. Frontend Patterns
-- **Optimistic UI Updates**: Leveraging React 19's `useOptimistic` hook combined with `useTransition` for instantaneous feedback on Likes, Saves, and Chat message sending before the server responds.
-- **Debouncing**: Custom debounced hooks for the username availability checker and global user search to minimize database load.
-- **Responsive Overlays**: Complex modal states (like the Poem detail overlay in the browse view) handled natively without breaking route structures.
+### 4. Interactive Frontend Patterns & Modal Overlays
+- **Social Modal Overlay**: When a user clicks a poem, it pops up in a rich modal overlay containing live interactive elements. The modal uses a custom client hook to lazy-fetch comments and user interaction state (likes/saves) dynamically without hurting page load speed.
+- **Robust Local Interactive States**: Likes, saves, and comments use state-backed updates instead of App Router transition-resets. This prevents optimistic UI states from jumping back on completion, and handles error rollbacks gracefully.
+- **Threaded Replies**: Renders recursive replies 1-level deep inside comment blocks with collapsible/expandable forms.
+- **Direct Chat Routing**: Features a direct link next to reader comments that routes to `/chat/new?userId=<id>` to seamlessly trigger direct messages.
 
 ---
 
