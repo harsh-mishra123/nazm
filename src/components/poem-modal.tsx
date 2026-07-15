@@ -20,6 +20,23 @@ interface PoemModalProps {
   onClose: () => void;
 }
 
+interface CommentUser {
+  id: string;
+  username: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
+interface ModalComment {
+  id: string;
+  text: string;
+  userId: string;
+  poemId: string;
+  parentId: string | null;
+  createdAt: Date;
+  user?: CommentUser | null;
+}
+
 export function PoemModal({ poem, onClose }: PoemModalProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +44,7 @@ export function PoemModal({ poem, onClose }: PoemModalProps) {
     likeCount: number;
     isLiked: boolean;
     isSaved: boolean;
-    comments: any[];
+    comments: ModalComment[];
     userId: string | null;
     isAdmin: boolean;
   } | null>(null);

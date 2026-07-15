@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { addComment, deleteComment } from "@/lib/comments/actions";
 import { formatDate } from "@/lib/utils";
@@ -36,6 +36,7 @@ export function CommentSection({
   currentUserId,
   isAdmin,
 }: CommentSectionProps) {
+  const [prevComments, setPrevComments] = useState<Comment[]>(comments);
   const [commentsList, setCommentsList] = useState<Comment[]>(comments);
   const [addPending, setAddPending] = useState<string | null>(null); // Stores "root" or parentId of reply
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -43,10 +44,10 @@ export function CommentSection({
   const formRef = useRef<HTMLFormElement>(null);
   const replyFormRef = useRef<HTMLFormElement>(null);
 
-  // Sync state if props change
-  useEffect(() => {
+  if (comments !== prevComments) {
+    setPrevComments(comments);
     setCommentsList(comments);
-  }, [comments]);
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, parentId: string | null = null) => {
     e.preventDefault();

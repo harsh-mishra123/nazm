@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Heart, Bookmark, Share2 } from "lucide-react";
 import { toggleLike, toggleSave } from "@/lib/interactions/actions";
 import { SharePoemDialog } from "@/components/share-poem-dialog";
@@ -27,19 +27,21 @@ export function InteractionButtons({
   onSaveToggle,
 }: InteractionButtonsProps) {
   const [shareOpen, setShareOpen] = useState(false);
+  const [prevProps, setPrevProps] = useState({ likeCount, isLiked, isSaved });
   const [likeState, setLikeState] = useState({ count: likeCount, liked: isLiked });
   const [saved, setSaved] = useState(isSaved);
   const [isLiking, setIsLiking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sync state if props change
-  useEffect(() => {
+  if (
+    likeCount !== prevProps.likeCount ||
+    isLiked !== prevProps.isLiked ||
+    isSaved !== prevProps.isSaved
+  ) {
+    setPrevProps({ likeCount, isLiked, isSaved });
     setLikeState({ count: likeCount, liked: isLiked });
-  }, [likeCount, isLiked]);
-
-  useEffect(() => {
     setSaved(isSaved);
-  }, [isSaved]);
+  }
 
   const handleLike = async () => {
     if (!isSignedIn) {
